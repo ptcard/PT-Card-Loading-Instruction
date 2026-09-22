@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PetroTrade — Card Loading Instruction</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f4f6f9; color: #1a1a1a; font-size: 15px; line-height: 1.6; }
+  .page-wrap { max-width: 1040px; margin: 2rem auto; padding: 0 1rem 4rem; }
+
+  .section { background: #ffffff; border: 1px solid #e0e4ea; border-radius: 12px; padding: 1.5rem 2rem; margin-bottom: 1.25rem; }
+  .section-title { font-size: 11px; font-weight: 600; color: #185FA5; margin-bottom: 1.25rem; padding-bottom: 10px; border-bottom: 1px solid #e8ecf0; text-transform: uppercase; letter-spacing: 1px; }
+
+  .field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label { font-size: 12px; color: #555; font-weight: 500; }
+  .field input, .field select, .field textarea {
+    font-size: 14px; padding: 9px 11px;
+    border: 1px solid #d0d5dd; border-radius: 8px;
+    background: #fafbfc; color: #1a1a1a; width: 100%;
+    outline: none; transition: border-color .15s, box-shadow .15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: #378ADD; box-shadow: 0 0 0 3px rgba(55,138,221,0.15);
+  }
+  .required { color: #e24b4a; }
+
+  .signature-box-wrap { position: relative; border: 1px solid #d0d5dd; border-radius: 8px; background: #fafbfc; overflow: hidden; }
+  .signature-canvas { display: block; width: 100%; height: 180px; touch-action: none; cursor: crosshair; }
+  .signature-placeholder { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: #b7c0cc; font-size: 13px; pointer-events: none; }
+
+  .table-wrapper { overflow-x: auto; }
+  table.data-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 13px; min-width: 520px; }
+  table.data-table th { background: #f0f4f8; color: #555; font-weight: 600; font-size: 11px; padding: 9px 6px; border: 1px solid #dde2ea; text-align: left; text-transform: uppercase; letter-spacing: .3px; word-break: break-word; overflow-wrap: break-word; hyphens: auto; }
+  table.data-table td { padding: 4px 4px; border: 1px solid #dde2ea; }
+  table.data-table td input, table.data-table td select {
+    border: none; background: transparent; width: 100%;
+    font-size: 13px; color: #1a1a1a; padding: 6px 6px; outline: none; border-radius: 4px;
+  }
+  table.data-table td input:focus, table.data-table td select:focus { background: #EBF4FF; }
+
+  .amount-cell { display: flex; align-items: center; gap: 4px; }
+  .amount-cell .cur { font-size: 12px; color: #888; font-weight: 600; padding-left: 4px; }
+  .amount-cell input { text-align: right; }
+
+  tfoot td { background: #f0f4f8; border: 1px solid #dde2ea; padding: 8px 6px; }
+  .total-label { text-align: right; font-size: 12px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: .3px; }
+  .total-value { text-align: right; font-size: 14px; font-weight: 700; color: #0C447C; white-space: nowrap; }
+
+  .add-row-btn { margin-top: 10px; font-size: 13px; padding: 7px 16px; border: 1px solid #c0c8d4; border-radius: 8px; background: transparent; color: #555; cursor: pointer; transition: background .15s; }
+  .add-row-btn:hover { background: #f0f4f8; }
+  .del-btn { background: none; border: none; color: #e24b4a; cursor: pointer; font-size: 18px; padding: 4px 6px; line-height: 1; border-radius: 4px; }
+  .del-btn:hover { background: #fdf0f0; }
+
+  .action-btn {
+    width: 100%; padding: 15px; color: #fff;
+    border: none; border-radius: 10px; font-size: 16px; font-weight: 600;
+    cursor: pointer; margin-top: 0.75rem; letter-spacing: .3px; transition: background .15s;
+  }
+  .action-btn.primary { background: #0C447C; }
+  .action-btn.primary:hover { background: #185FA5; }
+  .action-btn.secondary { background: #fff; color: #0C447C; border: 1.5px solid #0C447C; }
+  .action-btn.secondary:hover { background: #EBF4FF; }
+  .action-btn.danger { background: #fff; color: #c0392b; border: 1.5px solid #c0392b; }
+  .action-btn.danger:hover { background: #fdf0f0; }
+  .action-btn:disabled { background: #6b9fc2; border-color: #6b9fc2; color: #fff; cursor: not-allowed; }
+
+  .toast { display: none; border-radius: 10px; padding: 16px 20px; font-size: 14px; margin-top: 1.25rem; text-align: center; font-weight: 500; }
+  .toast.success { display: block; background: #EAF3DE; border: 1px solid #639922; color: #27500A; }
+  .toast.warning { display: block; background: #FAEEDA; border: 1px solid #BA7517; color: #633806; }
+
+  .dup-error { background: #fdf0f0 !important; box-shadow: inset 0 0 0 2px #e24b4a; border-radius: 4px; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,35,0.45); z-index: 999; align-items: center; justify-content: center; padding: 1rem; }
+  .modal-overlay.show { display: flex; }
+  .modal-box { background: #fff; border-radius: 12px; max-width: 380px; width: 100%; padding: 1.5rem 1.5rem 1.25rem; box-shadow: 0 12px 40px rgba(0,0,0,.25); text-align: center; }
+  .modal-icon { width: 46px; height: 46px; border-radius: 50%; background: #fdf0f0; color: #e24b4a; font-size: 24px; font-weight: 700; line-height: 46px; margin: 0 auto 12px; }
+  .modal-title { font-size: 16px; font-weight: 700; color: #c0392b; margin-bottom: 6px; }
+  .modal-text { font-size: 13px; color: #555; margin-bottom: 16px; }
+  .modal-btn { background: #0C447C; color: #fff; border: none; border-radius: 8px; padding: 10px 26px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .modal-btn:hover { background: #185FA5; }
+
+  @media (max-width: 600px) {
+    .section { padding: 1rem 1rem; }
+  }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- Entity/Individual Name -->
+  <div class="section">
+    <div class="section-title">1. Entity/Individual Name</div>
+    <div class="field-grid">
+      <div class="field full">
+        <label>Entity/Individual Name <span class="required">*</span></label>
+        <input type="text" id="f_entity_name" placeholder="e.g. ABC Logistics Inc. or John Doe">
+      </div>
+    </div>
+  </div>
+
+  <!-- Cards Info -->
+  <div class="section">
+    <div class="section-title">2. Cards info</div>
+    <p style="font-size:13px;color:#666;margin:0 0 10px">Add one row per card. Click <strong>+ Add row</strong> to include more.</p>
+    <div class="table-wrapper">
+      <table class="data-table" id="cardsTable">
+        <thead>
+          <tr>
+            <th style="width:6%">#</th>
+            <th style="width:46%">Card number <span style="color:#e24b4a">*</span></th>
+            <th style="width:38%">Amount (US$) <span style="color:#e24b4a">*</span></th>
+            <th style="width:8%"></th>
+          </tr>
+        </thead>
+        <tbody id="cardsBody">
+          <tr>
+            <td style="text-align:center;font-weight:500;color:#555;padding:6px 4px;">1</td>
+            <td><input type="text" class="card-no" placeholder="e.g. 7001234567890" onblur="checkDuplicate(this)"></td>
+            <td>
+              <div class="amount-cell">
+                <span class="cur">US$</span>
+                <input type="text" class="amount" inputmode="decimal" placeholder="0.00" oninput="recalcTotal()" onblur="formatAmount(this)">
+              </div>
+            </td>
+            <td><button class="del-btn" onclick="removeCardRow(this)">×</button></td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2" class="total-label">Total</td>
+            <td class="total-value" id="totalCell">US$ 0.00</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <button class="add-row-btn" onclick="addCardRow()">+ Add row</button>
+  </div>
+
+  <!-- Signature -->
+  <div class="section">
+    <div class="section-title">3. Signature</div>
+    <div class="field-grid">
+      <div class="field">
+        <label>Name <span class="required">*</span></label>
+        <input type="text" id="f_sig_name" placeholder="Full name">
+      </div>
+      <div class="field">
+        <label>Date <span class="required">*</span></label>
+        <input type="date" id="f_sig_date">
+      </div>
+      <div class="field full">
+        <label>Signature <span class="required">*</span></label>
+        <div class="signature-box-wrap">
+          <canvas id="signatureCanvas" class="signature-canvas"></canvas>
+          <div class="signature-placeholder" id="signaturePlaceholder">Sign here</div>
+        </div>
+        <button type="button" class="add-row-btn" id="clearSignatureBtn" onclick="clearSignature()" style="margin-top:8px;">Clear signature</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <button class="action-btn primary" id="downloadBtn" onclick="generatePDF()">Download PDF</button>
+    <button class="action-btn danger" onclick="clearAllData()">Clear All Data</button>
+    <div class="toast" id="toast"></div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="dupModal">
+  <div class="modal-box">
+    <div class="modal-icon">!</div>
+    <div class="modal-title">Error: Duplicate card number</div>
+    <div class="modal-text" id="dupModalText">This card number has already been entered in the form. Each card number must appear only once.</div>
+    <button class="modal-btn" onclick="closeDupModal()">OK</button>
+  </div>
+</div>
+
+<script>
+/* ---------- Cards table ---------- */
+function cardRowHTML(num){
+  return `
+    <td style="text-align:center;font-weight:500;color:#555;padding:6px 4px;">${num}</td>
+    <td><input type="text" class="card-no" placeholder="e.g. 7001234567890" onblur="checkDuplicate(this)"></td>
+    <td>
+      <div class="amount-cell">
+        <span class="cur">US$</span>
+        <input type="text" class="amount" inputmode="decimal" placeholder="0.00" oninput="recalcTotal()" onblur="formatAmount(this)">
+      </div>
+    </td>
+    <td><button class="del-btn" onclick="removeCardRow(this)">×</button></td>`;
+}
+
+function addCardRow(){
+  const tb = document.getElementById('cardsBody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = cardRowHTML(tb.querySelectorAll('tr').length + 1);
+  tb.appendChild(tr);
+  renumberRows();
+  recalcTotal();
+}
+
+function removeCardRow(btn){
+  const rows = document.querySelectorAll('#cardsBody tr');
+  if(rows.length > 1){
+    btn.closest('tr').remove();
+    renumberRows();
+    recalcTotal();
+  }
+}
+
+function renumberRows(){
+  document.querySelectorAll('#cardsBody tr').forEach((row, i) => {
+    row.cells[0].textContent = i + 1;
+  });
+}
+
+/* ---------- Duplicate card number ---------- */
+let dupPendingInput = null;
+
+function normCard(v){
+  return String(v || '').trim().replace(/[\s-]/g, '').toUpperCase();
+}
+
+function checkDuplicate(input){
+  const val = normCard(input.value);
+  if(!val) { input.classList.remove('dup-error'); return false; }
+  const all = document.querySelectorAll('#cardsBody .card-no');
+  let dupRow = -1;
+  all.forEach((el, i) => {
+    if(el !== input && normCard(el.value) === val && dupRow === -1) dupRow = i + 1;
+  });
+  if(dupRow !== -1){
+    input.classList.add('dup-error');
+    showDupModal(input.value.trim(), dupRow, input);
+    return true;
+  }
+  input.classList.remove('dup-error');
+  return false;
+}
+
+function showDupModal(cardNo, rowNum, input){
+  dupPendingInput = input || null;
+  document.getElementById('dupModalText').innerHTML =
+    'Card number <strong>' + escapeHTML(cardNo) + '</strong> has already been entered in row ' + rowNum +
+    '. Each card number can only be entered once.';
+  document.getElementById('dupModal').classList.add('show');
+}
+
+function closeDupModal(){
+  document.getElementById('dupModal').classList.remove('show');
+  if(dupPendingInput){
+    const el = dupPendingInput;
+    dupPendingInput = null;
+    el.value = '';
+    el.classList.remove('dup-error');
+    setTimeout(() => el.focus(), 0);
+  }
+}
+
+function escapeHTML(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && document.getElementById('dupModal').classList.contains('show')) closeDupModal();
+});
+
+/* ---------- Amounts & total ---------- */
+function parseAmount(val){
+  if(!val) return 0;
+  const n = parseFloat(String(val).replace(/[^0-9.\-]/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+
+function money(n){
+  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatAmount(input){
+  if(input.value.trim() === '') return;
+  input.value = money(parseAmount(input.value));
+  recalcTotal();
+}
+
+function recalcTotal(){
+  let total = 0;
+  document.querySelectorAll('#cardsBody .amount').forEach(el => { total += parseAmount(el.value); });
+  document.getElementById('totalCell').textContent = 'US$ ' + money(total);
+  return total;
+}
+
+/* ---------- Signature ---------- */
+let sigCtx = null, sigDrawing = false, sigHasContent = false, sigLastX = 0, sigLastY = 0;
+
+function initSignaturePad(){
+  const canvas = document.getElementById('signatureCanvas');
+  if(!canvas) return;
+
+  function resizeCanvas(){
+    const rect = canvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+    const preserved = sigHasContent ? canvas.toDataURL('image/png') : null;
+    canvas.width = rect.width * ratio;
+    canvas.height = rect.height * ratio;
+    sigCtx = canvas.getContext('2d');
+    sigCtx.scale(ratio, ratio);
+    sigCtx.lineWidth = 2;
+    sigCtx.lineCap = 'round';
+    sigCtx.strokeStyle = '#1a1a1a';
+    if(preserved){
+      const img = new Image();
+      img.onload = () => sigCtx.drawImage(img, 0, 0, rect.width, rect.height);
+      img.src = preserved;
+    }
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  function getPos(e){
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  }
+
+  function start(e){
+    e.preventDefault();
+    sigDrawing = true;
+    const pos = getPos(e);
+    sigLastX = pos.x; sigLastY = pos.y;
+    const ph = document.getElementById('signaturePlaceholder');
+    if(ph) ph.style.display = 'none';
+  }
+  function move(e){
+    if(!sigDrawing) return;
+    e.preventDefault();
+    const pos = getPos(e);
+    sigCtx.beginPath();
+    sigCtx.moveTo(sigLastX, sigLastY);
+    sigCtx.lineTo(pos.x, pos.y);
+    sigCtx.stroke();
+    sigLastX = pos.x; sigLastY = pos.y;
+    sigHasContent = true;
+  }
+  function end(){ sigDrawing = false; }
+
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', end);
+  canvas.addEventListener('touchstart', start, { passive: false });
+  canvas.addEventListener('touchmove', move, { passive: false });
+  canvas.addEventListener('touchend', end);
+}
+
+function clearSignature(){
+  const canvas = document.getElementById('signatureCanvas');
+  if(!canvas || !sigCtx) return;
+  sigCtx.clearRect(0, 0, canvas.width, canvas.height);
+  sigHasContent = false;
+  const ph = document.getElementById('signaturePlaceholder');
+  if(ph) ph.style.display = '';
+}
+
+function setTodayDate(){
+  const d = new Date();
+  const iso = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  const el = document.getElementById('f_sig_date');
+  if(el) el.value = iso;
+}
+
+initSignaturePad();
+setTodayDate();
+recalcTotal();
+
+/* ---------- Data collection & validation ---------- */
+function formatDateDisplay(iso){
+  if(!iso) return '-';
+  const parts = iso.split('-');
+  if(parts.length !== 3) return iso;
+  return parts[2] + '/' + parts[1] + '/' + parts[0];
+}
+
+function collectFormData(){
+  const cardRows = [];
+  document.querySelectorAll('#cardsBody tr').forEach((row, i) => {
+    const cardNo = row.querySelector('.card-no').value.trim();
+    const amountRaw = row.querySelector('.amount').value.trim();
+    if(cardNo || amountRaw){
+      cardRows.push({ num: i+1, card: cardNo || '-', amount: money(parseAmount(amountRaw)) });
+    }
+  });
+  return {
+    entityName: document.getElementById('f_entity_name').value || '-',
+    sigName: document.getElementById('f_sig_name').value || '-',
+    sigDate: formatDateDisplay(document.getElementById('f_sig_date').value),
+    cardRows,
+    total: money(recalcTotal()),
+    generatedAt: new Date().toLocaleString()
+  };
+}
+
+function showToast(msg, type){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type;
+}
+
+function validateForm(){
+  const entityName = document.getElementById('f_entity_name').value.trim();
+  if(!entityName){ showToast('Please enter the Entity/Individual Name.', 'warning'); return false; }
+
+  const rows = document.querySelectorAll('#cardsBody tr');
+  for(let i = 0; i < rows.length; i++){
+    const cardNo = rows[i].querySelector('.card-no').value.trim();
+    const amountRaw = rows[i].querySelector('.amount').value.trim();
+    if(!cardNo){ showToast('Row ' + (i+1) + ' is missing a Card number (required).', 'warning'); return false; }
+    if(!amountRaw){ showToast('Row ' + (i+1) + ' is missing an Amount (required).', 'warning'); return false; }
+    if(parseAmount(amountRaw) <= 0){ showToast('Row ' + (i+1) + ' has an invalid Amount. Enter a number greater than 0.', 'warning'); return false; }
+  }
+
+  const seen = {};
+  for(let i = 0; i < rows.length; i++){
+    const key = normCard(rows[i].querySelector('.card-no').value);
+    if(seen[key] !== undefined){
+      rows[i].querySelector('.card-no').classList.add('dup-error');
+      showDupModal(rows[i].querySelector('.card-no').value.trim(), seen[key] + 1, null);
+      showToast('Duplicate card number found in row ' + (i+1) + '. Please correct it before generating the PDF.', 'warning');
+      return false;
+    }
+    seen[key] = i;
+  }
+
+  const sigName = document.getElementById('f_sig_name').value.trim();
+  if(!sigName){ showToast('Please enter the Name in the Signature section.', 'warning'); return false; }
+
+  const sigDate = document.getElementById('f_sig_date').value;
+  if(!sigDate){ showToast('Please enter the Date in the Signature section.', 'warning'); return false; }
+
+  if(!sigHasContent){ showToast('Please provide your signature before generating the PDF.', 'warning'); return false; }
+
+  return true;
+}
+
+/* ---------- PDF ---------- */
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function ensureJsPDF() {
+  if ((window.jspdf && window.jspdf.jsPDF) || window.jsPDF) return true;
+  const cdns = [
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js',
+    'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'
+  ];
+  for (const cdn of cdns) {
+    try {
+      await loadScript(cdn);
+      if ((window.jspdf && window.jspdf.jsPDF) || window.jsPDF) return true;
+    } catch(e) {}
+  }
+  return false;
+}
+
+async function generatePDF(){
+  if(!validateForm()) return;
+
+  const btn = document.getElementById('downloadBtn');
+  const originalText = btn.textContent;
+  btn.textContent = 'Generating PDF...';
+  btn.disabled = true;
+
+  try {
+    const loaded = await ensureJsPDF();
+    if (!loaded) {
+      showToast('Could not load PDF library. Please check your internet connection and try again.', 'warning');
+      btn.textContent = originalText;
+      btn.disabled = false;
+      return;
+    }
+
+    const data = collectFormData();
+
+    const jsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+    if (!jsPDF) throw new Error('jsPDF library failed to load. Please check your internet connection.');
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const W = 210; const margin = 15; const col = W - margin * 2;
+    let y = 20;
+
+    const addPageIfNeeded = (needed) => { if(y + needed > 278) { doc.addPage(); y = 15; } };
+
+    // Title
+    doc.setFontSize(15); doc.setFont('helvetica','bold'); doc.setTextColor(12,68,124);
+    doc.text('PetroTrade — Card Loading Instruction', margin, y); y += 6;
+    doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(120,120,120);
+    doc.text('Generated: ' + data.generatedAt, margin, y); y += 10;
+
+    doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(26,26,26);
+    doc.text('Entity/Individual Name:', margin, y); y += 6;
+    doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(26,26,26);
+    doc.text(data.entityName, margin, y); y += 14;
+
+    // Cards table
+    addPageIfNeeded(20);
+    doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(80,80,80);
+    doc.text('Card Details', margin, y); y += 5;
+
+    const cCols = ['#','Card number','Amount (US$)'];
+    const cW = [12, 98, 70];
+    doc.setFillColor(240,244,248);
+    doc.rect(margin, y, col, 7, 'F');
+    doc.setTextColor(85,85,85); doc.setFontSize(7); doc.setFont('helvetica','bold');
+    let cx = margin;
+    cCols.forEach((c,i)=>{
+      if(i === 2) doc.text(c, cx + cW[i] - 2, y+5, { align:'right' });
+      else doc.text(c, cx+1, y+5);
+      cx += cW[i];
+    });
+    y += 7;
+
+    if(data.cardRows.length > 0){
+      data.cardRows.forEach((r,idx)=>{
+        const lines = doc.splitTextToSize(String(r.card||'-'), cW[1] - 2);
+        const rowH = Math.max(6, lines.length * 5 + 2);
+        addPageIfNeeded(rowH);
+        if(idx%2===0){ doc.setFillColor(250,251,252); doc.rect(margin, y, col, rowH, 'F'); }
+        doc.setTextColor(26,26,26); doc.setFont('helvetica','normal'); doc.setFontSize(8);
+        doc.text(String(r.num), margin+1, y+4);
+        doc.text(lines, margin + cW[0] + 1, y+4);
+        doc.text(r.amount, margin + cW[0] + cW[1] + cW[2] - 2, y+4, { align:'right' });
+        y += rowH;
+      });
+    } else {
+      doc.setTextColor(150,150,150); doc.setFont('helvetica','italic'); doc.setFontSize(8);
+      doc.text('No cards specified', margin+2, y+4);
+      y += 6;
+    }
+
+    // Total row
+    addPageIfNeeded(9);
+    doc.setFillColor(240,244,248);
+    doc.rect(margin, y, col, 8, 'F');
+    doc.setDrawColor(221,226,234);
+    doc.rect(margin, y, col, 8);
+    doc.setTextColor(26,26,26); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.text('TOTAL', margin + cW[0] + cW[1] - 2, y+5.5, { align:'right' });
+    doc.setTextColor(12,68,124);
+    doc.text('US$ ' + data.total, margin + cW[0] + cW[1] + cW[2] - 2, y+5.5, { align:'right' });
+    y += 13;
+
+    // Signature
+    addPageIfNeeded(56);
+    doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(80,80,80);
+    doc.text('Signature', margin, y); y += 5;
+    const sigCanvas = document.getElementById('signatureCanvas');
+    if(sigCanvas && sigHasContent){
+      try {
+        const imgData = sigCanvas.toDataURL('image/png');
+        const imgW = 70; const imgH = imgW * (sigCanvas.height / sigCanvas.width);
+        doc.addImage(imgData, 'PNG', margin, y, imgW, imgH);
+        y += imgH + 2;
+      } catch(e){
+        doc.setTextColor(150,150,150); doc.setFont('helvetica','italic'); doc.setFontSize(8);
+        doc.text('Signature could not be embedded', margin+2, y+4);
+        y += 6;
+      }
+    } else {
+      doc.setTextColor(150,150,150); doc.setFont('helvetica','italic'); doc.setFontSize(8);
+      doc.text('No signature provided', margin+2, y+4);
+      y += 6;
+    }
+    doc.setDrawColor(200,205,212);
+    doc.line(margin, y, margin + 70, y); y += 4;
+    doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(26,26,26);
+    doc.text('Signed by: ' + data.sigName, margin, y); y += 6;
+    doc.text('Date: ' + data.sigDate, margin, y); y += 8;
+
+    // Footer on every page
+    const total = doc.internal.getNumberOfPages();
+    for(let p=1;p<=total;p++){
+      doc.setPage(p);
+      doc.setFillColor(12,68,124);
+      doc.rect(0, 287, W, 10, 'F');
+      doc.setFontSize(7); doc.setTextColor(180,210,240);
+      doc.text('Petro Trade Inc. - Card Loading Instruction - Confidential', margin, 293);
+      doc.text('Page '+p+' of '+total, W-margin, 293, { align:'right' });
+    }
+
+    doc.save('Card_Loading_Instruction_' + Date.now() + '.pdf');
+
+    showToast('PDF downloaded successfully!', 'success');
+    btn.textContent = originalText;
+    btn.disabled = false;
+
+  } catch(err){
+    console.error('PDF error:', err);
+    showToast('Failed to generate PDF: ' + err.message, 'warning');
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
+/* ---------- Reset ---------- */
+function clearAllData() {
+  if (!confirm('Are you sure you want to clear all entered data? This cannot be undone.')) return;
+
+  document.getElementById('f_entity_name').value = '';
+
+  const cardsBody = document.getElementById('cardsBody');
+  while (cardsBody.rows.length > 1) cardsBody.deleteRow(cardsBody.rows.length - 1);
+  cardsBody.querySelectorAll('input').forEach(el => el.value = '');
+  cardsBody.querySelectorAll('.card-no').forEach(el => el.classList.remove('dup-error'));
+  renumberRows();
+  recalcTotal();
+
+  document.getElementById('f_sig_name').value = '';
+  setTodayDate();
+  clearSignature();
+
+  const t = document.getElementById('toast');
+  t.className = 'toast';
+  t.textContent = '';
+}
+</script>
+</body>
+</html>
