@@ -28,7 +28,7 @@
   .required { color: #e24b4a; }
 
   .signature-box-wrap { position: relative; border: 1px solid #d0d5dd; border-radius: 8px; background: #fafbfc; overflow: hidden; }
-  .signature-canvas { display: block; width: 100%; height: 180px; touch-action: none; cursor: crosshair; }
+  .signature-canvas { display: block; width: 100%; height: 300px; touch-action: none; cursor: crosshair; }
   .signature-placeholder { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: #b7c0cc; font-size: 13px; pointer-events: none; }
 
   .table-wrapper { overflow-x: auto; }
@@ -118,7 +118,7 @@
         <tbody id="cardsBody">
           <tr>
             <td style="text-align:center;font-weight:500;color:#555;padding:6px 4px;">1</td>
-            <td><input type="text" class="card-no" placeholder="e.g. 7001234567890" onblur="checkDuplicate(this)"></td>
+            <td><input type="text" class="card-no" placeholder="e.g. 8088002706331234" onblur="checkDuplicate(this)"></td>
             <td>
               <div class="amount-cell">
                 <span class="cur">US$</span>
@@ -185,7 +185,7 @@
 function cardRowHTML(num){
   return `
     <td style="text-align:center;font-weight:500;color:#555;padding:6px 4px;">${num}</td>
-    <td><input type="text" class="card-no" placeholder="e.g. 7001234567890" onblur="checkDuplicate(this)"></td>
+    <td><input type="text" class="card-no" placeholder="e.g. 8088002706331234" onblur="checkDuplicate(this)"></td>
     <td>
       <div class="amount-cell">
         <span class="cur">US$</span>
@@ -560,14 +560,14 @@ async function generatePDF(){
     y += 13;
 
     // Signature
-    addPageIfNeeded(56);
+    addPageIfNeeded(70);
     doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(80,80,80);
     doc.text('Signature', margin, y); y += 5;
     const sigCanvas = document.getElementById('signatureCanvas');
     if(sigCanvas && sigHasContent){
       try {
         const imgData = sigCanvas.toDataURL('image/png');
-        const imgW = 70; const imgH = imgW * (sigCanvas.height / sigCanvas.width);
+        const imgW = 85; const imgH = imgW * (sigCanvas.height / sigCanvas.width);
         doc.addImage(imgData, 'PNG', margin, y, imgW, imgH);
         y += imgH + 2;
       } catch(e){
@@ -581,7 +581,7 @@ async function generatePDF(){
       y += 6;
     }
     doc.setDrawColor(200,205,212);
-    doc.line(margin, y, margin + 70, y); y += 4;
+    doc.line(margin, y, margin + 85, y); y += 5;
     doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(26,26,26);
     doc.text('Signed by: ' + data.sigName, margin, y); y += 6;
     doc.text('Date: ' + data.sigDate, margin, y); y += 8;
