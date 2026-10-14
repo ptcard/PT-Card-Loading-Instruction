@@ -447,6 +447,47 @@ function validateForm(){
 }
 
 /* ---------- PDF ---------- */
+// Crops the signature to its drawn area, scales it down and returns a small JPEG.
+// The raw canvas is full-width x 300px x devicePixelRatio, which made PDFs huge.
+function getCompactSignature(canvas){
+  const ctx = canvas.getContext('2d');
+  const cw = canvas.width, ch = canvas.height;
+  const px = ctx.getImageData(0, 0, cw, ch).data;
+  let minX = cw, minY = ch, maxX = -1, maxY = -1;
+  for(let yy = 0; yy < ch; yy++){
+    for(let xx = 0; xx < cw; xx++){
+      if(px[(yy * cw + xx) * 4 + 3] > 10){
+        if(xx < minX) minX = xx;
+        if(xx > maxX) maxX = xx;
+        if(yy < minY) minY = yy;
+        if(yy > maxY) maxY = yy;
+      }
+    }
+  }
+  if(maxX < 0) return null;
+
+  const pad = 8;
+  minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad);
+  maxX = Math.min(cw - 1, maxX + pad); maxY = Math.min(ch - 1, maxY + pad);
+  const srcW = maxX - minX + 1, srcH = maxY - minY + 1;
+
+  // Max 600px wide is plenty for an 85mm-wide signature (~180 dpi)
+  const scale = Math.min(1, 600 / srcW, 250 / srcH);
+  const outW = Math.max(1, Math.round(srcW * scale));
+  const outH = Math.max(1, Math.round(srcH * scale));
+
+  const out = document.createElement('canvas');
+  out.width = outW; out.height = outH;
+  const octx = out.getContext('2d');
+  octx.fillStyle = '#ffffff';            // JPEG has no transparency
+  octx.fillRect(0, 0, outW, outH);
+  octx.imageSmoothingEnabled = true;
+  octx.imageSmoothingQuality = 'high';
+  octx.drawImage(canvas, minX, minY, srcW, srcH, 0, 0, outW, outH);
+
+  return { data: out.toDataURL('image/jpeg', 0.8), w: outW, h: outH };
+}
+
 function loadScript(src) {
   return new Promise((resolve, reject) => {
     const s = document.createElement('script');
@@ -494,7 +535,7 @@ async function generatePDF(){
 
     const jsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
     if (!jsPDF) throw new Error('jsPDF library failed to load. Please check your internet connection.');
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
     const W = 210; const margin = 15; const col = W - margin * 2;
     let y = 20;
 
@@ -566,9 +607,13 @@ async function generatePDF(){
     const sigCanvas = document.getElementById('signatureCanvas');
     if(sigCanvas && sigHasContent){
       try {
-        const imgData = sigCanvas.toDataURL('image/png');
-        const imgW = 85; const imgH = imgW * (sigCanvas.height / sigCanvas.width);
-        doc.addImage(imgData, 'PNG', margin, y, imgW, imgH);
+        const sig = getCompactSignature(sigCanvas);
+        if(!sig) throw new Error('empty signature');
+        // Fit inside an 85mm x 35mm box, keeping aspect ratio
+        const maxW = 85, maxH = 35;
+        let imgW = maxW, imgH = maxW * (sig.h / sig.w);
+        if(imgH > maxH){ imgH = maxH; imgW = maxH * (sig.w / sig.h); }
+        doc.addImage(sig.data, 'JPEG', margin, y, imgW, imgH, 'signature', 'FAST');
         y += imgH + 2;
       } catch(e){
         doc.setTextColor(150,150,150); doc.setFont('helvetica','italic'); doc.setFontSize(8);
