@@ -83,6 +83,9 @@
   .modal-text { font-size: 13px; color: #555; margin-bottom: 16px; }
   .modal-btn { background: #0C447C; color: #fff; border: none; border-radius: 8px; padding: 10px 26px; font-size: 14px; font-weight: 600; cursor: pointer; }
   .modal-btn:hover { background: #185FA5; }
+  .modal-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .modal-btn.ghost { background: #fff; color: #0C447C; border: 1.5px solid #0C447C; }
+  .modal-btn.ghost:hover { background: #EBF4FF; }
 
   @media (max-width: 600px) {
     .section { padding: 1rem 1rem; }
@@ -167,6 +170,7 @@
 
   <div class="section">
     <button class="action-btn primary" id="submitBtn" onclick="submitForm()">Submit</button>
+    <button class="action-btn secondary" id="downloadCopyBtn" onclick="downloadLastPdf()" style="display:none">Download PDF copy</button>
     <button class="action-btn danger" onclick="clearAllData()">Clear All Data</button>
     <div class="toast" id="toast"></div>
   </div>
@@ -186,8 +190,11 @@
   <div class="modal-box">
     <div class="modal-icon ok">✓</div>
     <div class="modal-title ok">Submitted successfully</div>
-    <div class="modal-text">Your card loading instruction has been sent to PetroTrade. A copy of the PDF has been downloaded to your device.</div>
-    <button class="modal-btn" onclick="document.getElementById('successModal').classList.remove('show')">OK</button>
+    <div class="modal-text">Your card loading instruction has been sent to PetroTrade. Would you like a PDF copy for your records?</div>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="downloadLastPdf(); closeSuccessModal()">Download PDF</button>
+      <button class="modal-btn ghost" onclick="closeSuccessModal()">No thanks</button>
+    </div>
   </div>
 </div>
 
@@ -668,6 +675,16 @@ function buildSummaryHtml(data){
 
 /* ---------- Submit: email via Power Automate, then download ---------- */
 let submitting = false;
+let lastPdf = null;   // PDF from the last successful submission
+
+function downloadLastPdf(){
+  if(!lastPdf){ showToast('No submitted PDF available yet. Please submit the form first.', 'warning'); return; }
+  lastPdf.doc.save(lastPdf.fileName);
+}
+
+function closeSuccessModal(){
+  document.getElementById('successModal').classList.remove('show');
+}
 
 async function submitForm(){
   if(submitting) return;
@@ -681,6 +698,8 @@ async function submitForm(){
   const btn = document.getElementById('submitBtn');
   const originalText = btn.textContent;
   submitting = true;
+  lastPdf = null;
+  document.getElementById('downloadCopyBtn').style.display = 'none';
   btn.disabled = true;
   btn.textContent = 'Submitting...';
 
@@ -724,8 +743,9 @@ async function submitForm(){
     if(!res.ok) throw new Error('Email service returned ' + res.status + '.');
 
     // Email accepted — now give the user their copy.
-    doc.save(fileName);
-    showToast('Submitted and emailed successfully. Your PDF copy has been downloaded.', 'success');
+    lastPdf = { doc: doc, fileName: fileName };
+    document.getElementById('downloadCopyBtn').style.display = '';
+    showToast('Submitted and emailed successfully. You can download a PDF copy below.', 'success');
     document.getElementById('successModal').classList.add('show');
 
   } catch(err){
@@ -757,6 +777,9 @@ function clearAllData() {
   document.getElementById('f_sig_name').value = '';
   setTodayDate();
   clearSignature();
+
+  lastPdf = null;
+  document.getElementById('downloadCopyBtn').style.display = 'none';
 
   const t = document.getElementById('toast');
   t.className = 'toast';
